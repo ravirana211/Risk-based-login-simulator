@@ -1,0 +1,173 @@
+{
+  "config": {
+    "users": 2000,
+    "days": 30,
+    "seed": 42,
+    "events": 75593,
+    "scored_events": 52543
+  },
+  "default_otp": {
+    "step_up_at": 30,
+    "block_at": 70,
+    "method": "otp",
+    "n_good": 52344,
+    "n_attack": 199,
+    "catch_rate": 0.9130653266331666,
+    "false_positive_rate": 0.017537826685006877,
+    "good_block_rate": 0.0021205868867491978,
+    "friction_sec_per_good_login": 1.0986932599724897,
+    "expected_abandons": 32.27999999999949,
+    "missed_takeovers": 17.29999999999984,
+    "total_cost": 5636.599999999958,
+    "catch_by_scenario": {
+      "brute_force": 1.0,
+      "credential_stuffing": 1.0,
+      "impossible_travel": 1.0,
+      "local_attacker": 0.6599999999999999,
+      "new_device_3am": 0.8549999999999993,
+      "smart_stuffing": 0.9277777777777779
+    },
+    "attacks_by_scenario": {
+      "brute_force": 5,
+      "credential_stuffing": 66,
+      "impossible_travel": 40,
+      "local_attacker": 30,
+      "new_device_3am": 40,
+      "smart_stuffing": 18
+    },
+    "challenge_rate_by_good_scenario": {
+      "new_phone": 0.0030234315948601664,
+      "normal": 0.00014876156001289266,
+      "secondary_device": 0.004954367666232073,
+      "shift_worker": 0.0002910360884749709,
+      "travel": 0.011976047904191617,
+      "vpn": 0.5511613308223478
+    },
+    "good_by_scenario": {
+      "new_phone": 2646,
+      "normal": 40333,
+      "secondary_device": 3835,
+      "shift_worker": 3436,
+      "travel": 501,
+      "vpn": 1593
+    }
+  },
+  "min_cost_otp": {
+    "step_up_at": 22,
+    "block_at": 70,
+    "method": "otp",
+    "catch_rate": 0.9582914572864331,
+    "false_positive_rate": 0.03647027357481278,
+    "good_block_rate": 0.0021205868867491978,
+    "friction_sec_per_good_login": 1.6666666666666667,
+    "missed_takeovers": 8.299999999999812,
+    "expected_abandons": 71.92000000000004,
+    "total_cost": 4179.399999999953
+  },
+  "default_passkey": {
+    "step_up_at": 30,
+    "block_at": 70,
+    "method": "passkey",
+    "n_good": 52344,
+    "n_attack": 199,
+    "catch_rate": 0.949748743718593,
+    "false_positive_rate": 0.017537826685006877,
+    "good_block_rate": 0.0021205868867491978,
+    "friction_sec_per_good_login": 0.7286795048143053,
+    "expected_abandons": 8.069999999999872,
+    "missed_takeovers": 10.0,
+    "total_cost": 3303.1899999999996,
+    "catch_by_scenario": {
+      "brute_force": 1.0,
+      "credential_stuffing": 1.0,
+      "impossible_travel": 1.0,
+      "local_attacker": 0.7333333333333333,
+      "new_device_3am": 0.95,
+      "smart_stuffing": 1.0
+    },
+    "attacks_by_scenario": {
+      "brute_force": 5,
+      "credential_stuffing": 66,
+      "impossible_travel": 40,
+      "local_attacker": 30,
+      "new_device_3am": 40,
+      "smart_stuffing": 18
+    },
+    "challenge_rate_by_good_scenario": {
+      "new_phone": 0.0030234315948601664,
+      "normal": 0.00014876156001289266,
+      "secondary_device": 0.004954367666232073,
+      "shift_worker": 0.0002910360884749709,
+      "travel": 0.011976047904191617,
+      "vpn": 0.5511613308223478
+    },
+    "good_by_scenario": {
+      "new_phone": 2646,
+      "normal": 40333,
+      "secondary_device": 3835,
+      "shift_worker": 3436,
+      "travel": 501,
+      "vpn": 1593
+    }
+  },
+  "min_cost_passkey": {
+    "step_up_at": 22,
+    "block_at": 70,
+    "method": "passkey",
+    "catch_rate": 1.0,
+    "false_positive_rate": 0.03647027357481278,
+    "good_block_rate": 0.0021205868867491978,
+    "friction_sec_per_good_login": 0.8422741861531408,
+    "missed_takeovers": 0.0,
+    "expected_abandons": 17.98000000000001,
+    "total_cost": 971.6600000000001
+  },
+  "score_histogram_bins_of_5": {
+    "good": [
+      49392,
+      63,
+      51,
+      574,
+      355,
+      991,
+      130,
+      51,
+      108,
+      0,
+      347,
+      7,
+      89,
+      75,
+      18,
+      47,
+      10,
+      24,
+      6,
+      0,
+      6
+    ],
+    "attack": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      10,
+      0,
+      38,
+      0,
+      22,
+      5,
+      0,
+      8,
+      0,
+      1,
+      0,
+      1,
+      28,
+      1,
+      4,
+      81
+    ]
+  }
+}
