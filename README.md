@@ -51,8 +51,31 @@ Before production: encrypt TOTP secrets at rest, put the API behind HTTPS, add C
 | `scripts/run_simulation.py` | End-to-end run → `results/` |
 | `api/` | FastAPI login API: `app.py` (routes), `service.py` (auth + risk logic), `db.py`, `security.py`, `ipintel.py` |
 | `scripts/demo_api.py` | Walks through allow / step-up / block against a running API |
+| `web/` | Mobile-first PWA: `index.html`, `app.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `serve.py` (dev server + API proxy) |
 
 The login API imports `RiskEngine` and `RiskState` directly, so live logins and the simulator score with the same code.
+
+## Web app (mobile-first PWA)
+
+`web/` is an installable phone app for the login API: plain HTML, CSS and JavaScript with no build step.
+
+```bash
+RISKAUTH_SIM_MODE=1 uvicorn api.app:app --port 8000
+python web/serve.py          # http://localhost:5173 (forwards /api/* to the API)
+```
+
+On a phone, open it and use **Add to Home Screen** to run it full-screen like a native app.
+
+| Screen | What it does |
+|---|---|
+| Account | Welcome, sign in, create account; once signed in, session status, trusted device and the risk check behind this sign-in (score meter + signals) |
+| Set up codes | QR code and setup key for any authenticator app |
+| Verify | 6-box code entry with one-time-code autofill and paste, auto-submit, tries left, expiry countdown. In sim mode a built-in demo authenticator shows the live code so you can test without a phone. |
+| Activity | Every attempt on your account by day: allowed / code / blocked counts; tap a row for signals, device, IP and network |
+| Attack lab | Replays six attacks (impossible travel, local attacker, new device at 3am, credential stuffing, smart stuffing, brute force) against an account and shows the verdict, score and every attempt |
+| Settings | Simulated city and network (Home Wi-Fi / Mobile / VPN), reset device ID, light/dark/system theme, API address |
+
+Built for phones first: safe-area insets, bottom tab bar, 48px+ touch targets, 17px body text, 16px+ inputs (no iOS zoom), light and dark themes, reduced-motion support, and an offline-capable app shell (service worker). The browser derives the device ID from a hash of browser traits plus random salt; Settings can reset it to look like a new device. The QR code uses the MIT-licensed `qrcode-generator` (vendored in `web/vendor/`).
 
 ## Signals and default weights
 
@@ -103,4 +126,4 @@ Findings:
 - Every attack in the generator uses a new device, so "new device" separates attackers too cleanly. Add stolen-session and malware-on-known-device scenarios.
 - Sweeps re-threshold fixed scores. History is learned once, under the default policy.
 - Validate against the public RBA dataset (Wiefling et al.) before trusting the numbers.
-- ~~Phase 3: login API with TOTP step-up~~ done. Next: web UI + attacker console, live dashboard, WebAuthn passkeys, optional logistic-regression model.
+- ~~Phase 3: login API with TOTP step-up~~ done. ~~web UI + attack lab~~ done. Next: live dashboard, WebAuthn passkeys, optional logistic-regression model.
