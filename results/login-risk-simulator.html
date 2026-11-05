@@ -1,0 +1,335 @@
+<title>Login Risk Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 1040px column; summary → interactive policy explorer → how it works → research → roadmap */
+:root{
+  --bg:#f5f7fa; --surface:#ffffff; --ink:#121820; --ink-2:#465264; --muted:#6c7889; --line:#dbe0e7; --tint:#eaf0f6;
+  --accent:#0d6f68; --accent-ink:#ffffff;
+  --s1:#2a78d6; --s2:#eb6834;
+  --good:#0ca30c; --warn:#b07800; --crit:#d03b3b;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1317; --surface:#171c22; --ink:#eef1f5; --ink-2:#b6bfcb; --muted:#8994a4; --line:#2a313b; --tint:#1e252e;
+  --accent:#43b8ad; --accent-ink:#06201e; --s1:#3987e5; --s2:#d95926;
+  --good:#2fbf2f; --warn:#fab219; --crit:#e66767; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1317; --surface:#171c22; --ink:#eef1f5; --ink-2:#b6bfcb; --muted:#8994a4; --line:#2a313b; --tint:#1e252e;
+  --accent:#43b8ad; --accent-ink:#06201e; --s1:#3987e5; --s2:#d95926;
+  --good:#2fbf2f; --warn:#fab219; --crit:#e66767; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font:16px/1.6 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:0 64px}
+.wrap{max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:56px}
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0; line-height:1.15; letter-spacing:-0.01em}
+h1{font-size:clamp(2rem, 5vw, 3.1rem)} h2{font-size:1.65rem} h3{font-size:1.1rem}
+p{margin:0; max-width:68ch} .muted{color:var(--muted)} .ink2{color:var(--ink-2)}
+.eyebrow{font:500 .75rem/1 var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent)}
+code,.mono{font-family:var(--f-mono); font-size:.88em}
+section{display:flex; flex-direction:column; gap:20px}
+header.hero{padding-top:48px; display:flex; flex-direction:column; gap:16px}
+.lede{font-size:1.15rem; color:var(--ink-2)}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:24px}
+.grid2{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px}
+@media (max-width:760px){ .grid2{grid-template-columns:minmax(0,1fr)} .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} .bar{grid-template-columns:minmax(0,8.5rem) minmax(0,1fr) 3.4rem} }
+.tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.tile{background:var(--surface); padding:16px 18px; display:flex; flex-direction:column; gap:4px}
+.tile .v{font:600 1.7rem/1.1 var(--f-display); font-variant-numeric:tabular-nums}
+.tile .k{font-size:.82rem; color:var(--muted)}
+.controls{display:flex; flex-wrap:wrap; gap:20px 28px; align-items:center}
+.ctl{display:flex; flex-direction:column; gap:6px; min-width:0}
+.ctl label,.ctl .lab{font-size:.8rem; color:var(--muted); font-weight:500}
+input[type=range]{width:min(360px, 80vw); accent-color:var(--accent)}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.seg button,.chip{font:500 .9rem var(--f-body); border:0; background:var(--surface); color:var(--ink-2); padding:7px 14px; cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--accent); color:var(--accent-ink)}
+.chip{border:1px solid var(--line); border-radius:999px; padding:5px 12px; font-size:.82rem}
+.chip:hover,.seg button:hover{color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tv{font:600 1.25rem var(--f-mono); font-variant-numeric:tabular-nums}
+.bands{display:flex; height:10px; border-radius:5px; overflow:hidden; width:min(360px,80vw); gap:2px}
+.bands span{display:block; height:100%}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:.85rem; color:var(--ink-2)}
+.legend i{display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:6px}
+.chart{position:relative} .chart svg{display:block; width:100%; height:auto; overflow:visible}
+.chart text{fill:var(--muted); font:11px var(--f-mono)}
+.chart .lbl{fill:var(--ink-2); font:500 11.5px var(--f-body)}
+.grid line{stroke:var(--line)} .axis{stroke:var(--muted)}
+.tip{position:absolute; pointer-events:none; background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:.8rem; line-height:1.45; box-shadow:0 4px 14px rgb(0 0 0 / .12); white-space:nowrap; z-index:2}
+.tip b{font-variant-numeric:tabular-nums}
+.bars{display:flex; flex-direction:column; gap:10px}
+.bar{display:grid; grid-template-columns:minmax(0,10.5rem) minmax(0,1fr) 3.6rem; gap:12px; align-items:center; font-size:.88rem}
+.bar .track{height:12px; background:var(--tint); border-radius:4px; overflow:hidden}
+.bar .fill{display:block; height:100%; border-radius:0 4px 4px 0; background:var(--s1); transition:width .25s}
+.bar .num{text-align:right; font:500 .85rem var(--f-mono); font-variant-numeric:tabular-nums}
+.bar .name small{display:block; color:var(--muted); font-size:.75rem}
+@media (prefers-reduced-motion:reduce){ .bar .fill{transition:none} }
+.tbl{overflow-x:auto} table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600}
+td.n{font-family:var(--f-mono); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.pill{display:inline-flex; align-items:center; gap:6px; font:600 .78rem var(--f-body); padding:2px 9px; border-radius:999px; border:1px solid currentColor}
+.pill.allow{color:var(--good)} .pill.step{color:var(--warn)} .pill.block{color:var(--crit)}
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:10px}
+.node{flex:1 1 160px; min-width:0; border:1px solid var(--line); background:var(--surface); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:4px}
+.node b{font-family:var(--f-display); font-size:1rem}
+.node span{font-size:.84rem; color:var(--ink-2)}
+.arrow{align-self:center; color:var(--muted); font-family:var(--f-mono)}
+@media (max-width:640px){ .arrow{display:none} }
+ol.steps{margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:12px}
+ol.steps li{counter-increment:s; display:grid; grid-template-columns:2.2rem minmax(0,1fr); gap:12px}
+ol.steps li::before{content:counter(s); font:600 .9rem var(--f-mono); color:var(--accent); border:1px solid var(--line); border-radius:6px; height:2rem; display:grid; place-items:center}
+ol.steps li.done::before{content:"✓"; background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.status{font-size:.75rem; font-weight:600; color:var(--accent); margin-left:6px}
+ul.notes{margin:0; padding-left:1.2rem; display:grid; gap:8px} ul.notes li{max-width:72ch}
+a{color:var(--accent)}
+footer{font-size:.85rem; color:var(--muted); border-top:1px solid var(--line); padding-top:20px}
+</style>
+<div class="wrap">
+<header class="hero">
+  <span class="eyebrow">Project 2 · Risk-based authentication</span>
+  <h1>How do you stop account takeover without annoying good users?</h1>
+  <p class="lede">Every login gets a 0–100 risk score. The policy then allows it, asks for a step-up challenge, or blocks it. A synthetic traffic generator plays 2,000 users and six attack types over 30 days, so we can measure what each threshold costs.</p>
+  <div class="tiles" aria-label="Results at the default policy">
+    <div class="tile"><span class="v">91.3%</span><span class="k">takeover attempts caught</span></div>
+    <div class="tile"><span class="v">1.75%</span><span class="k">good logins challenged</span></div>
+    <div class="tile"><span class="v">0.21%</span><span class="k">good logins blocked</span></div>
+    <div class="tile"><span class="v">1.1 s</span><span class="k">friction per good login</span></div>
+  </div>
+  <p class="muted" style="font-size:.85rem">Default policy: step-up at score ≥ 30, block at ≥ 70, OTP challenge. 52,543 password-correct logins scored after a 7-day warm-up, including 199 takeover attempts. Seed 42.</p>
+</header>
+
+<section id="explorer" aria-labelledby="h-explorer">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span class="eyebrow">Threshold explorer</span>
+    <h2 id="h-explorer">Tighten the policy and watch both sides move</h2>
+    <p class="ink2">Lower the step-up threshold to challenge more logins. The block threshold stays at 70. Switch the challenge method to see how much a phishing-resistant passkey changes the result.</p>
+  </div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:22px">
+    <div class="controls">
+      <div class="ctl">
+        <label for="thr">Step-up when score ≥ <span class="tv" id="thrv">30</span></label>
+        <input id="thr" type="range" min="2" max="100" step="2" value="30">
+        <div class="bands" id="bands" aria-hidden="true"></div>
+      </div>
+      <div class="ctl"><span class="lab">Challenge method</span>
+        <div class="seg" role="group" aria-label="Challenge method">
+          <button id="m-otp" aria-pressed="true">OTP code</button><button id="m-passkey" aria-pressed="false">Passkey</button>
+        </div>
+      </div>
+      <div class="ctl"><span class="lab">Presets</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip" data-t="30">Default · 30</button><button class="chip" data-t="22">Lowest cost · 22</button><button class="chip" data-t="50">Lenient · 50</button></div>
+      </div>
+    </div>
+    <div class="tiles" id="live" aria-live="polite"></div>
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <h3>Fraud stopped vs. good users annoyed</h3>
+        <div class="legend"><span><i style="background:var(--s1)"></i>OTP</span><span><i style="background:var(--s2)"></i>Passkey</span></div>
+        <div class="chart" id="c-roc"></div>
+        <p class="muted" style="font-size:.8rem">Each point is one step-up threshold, 2 to 100. Up and left is better. Threshold 0 (challenge everyone) sits off the chart at 100% challenged.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <h3>Total cost by threshold</h3>
+        <div class="legend"><span><i style="background:var(--s1)"></i>OTP</span><span><i style="background:var(--s2)"></i>Passkey</span></div>
+        <div class="chart" id="c-cost"></div>
+        <p class="muted" style="font-size:.8rem">Cost = missed takeovers × $250 + friction seconds × $0.02 + abandoned challenges × $5. These dollar values are assumptions, and you can change them in the code.</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <h3>Catch rate by attack type</h3>
+        <div class="bars" id="b-attack"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <h3>Good logins challenged, by situation</h3>
+        <div class="bars" id="b-good"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-find">
+  <span class="eyebrow">What the simulation shows</span>
+  <h2 id="h-find">Findings</h2>
+  <ul class="notes">
+    <li><b>Bulk attacks are easy.</b> Credential stuffing from datacenters, brute force and impossible travel are all caught at 100%. Hosting ASNs, headless browsers and one-IP-many-accounts give them away.</li>
+    <li><b>VPN users are the false-positive problem.</b> About 55% of their VPN logins get challenged, because they look like datacenter traffic from another country. Almost everyone else is under 1.5%. The obvious product fix: after a user passes a step-up on a VPN, trust that VPN provider for them.</li>
+    <li><b>The local attacker is the hard case.</b> Valid password, home city, normal hours, residential IP: only 66% caught at the default policy. A new device is the only signal left.</li>
+    <li><b>The cost curve has a cliff.</b> Raising the step-up threshold from 34 to 36 drops the catch rate from 91% to 74%. New-device-only attacks score in the low 30s, so a few points of threshold decide whether they get through.</li>
+    <li><b>Passkeys change the maths more than tuning does.</b> At the same threshold, a passkey challenge cuts friction by a third and stops attackers who phish or relay OTP codes. Lowest cost drops from about $4.2k to $1.0k.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-how">
+  <span class="eyebrow">How it works</span>
+  <h2 id="h-how">One risk engine, used live and offline</h2>
+  <div class="flow">
+    <div class="node"><b>Login attempt</b><span>username, password check, IP, device fingerprint, timestamp</span></div><span class="arrow">→</span>
+    <div class="node"><b>Signals</b><span>history lookup + 1h sliding windows → named features</span></div><span class="arrow">→</span>
+    <div class="node"><b>Weighted rules</b><span>sum of fired rules, clamped to a 0–100 score with reasons</span></div><span class="arrow">→</span>
+    <div class="node"><b>Policy</b><span><span class="pill allow">✓ allow</span> <span class="pill step">! step-up</span> <span class="pill block">✕ block</span></span></div><span class="arrow">→</span>
+    <div class="node"><b>Learn</b><span>a successful login adds the device, ASN and country to the user's history</span></div>
+  </div>
+  <p class="ink2">The web app and the simulator call the same <code>RiskEngine</code>, so the measured numbers describe the code that would run in production.</p>
+  <div class="panel tbl" style="padding:8px 12px">
+    <table>
+      <thead><tr><th>Signal</th><th>How it's computed</th><th style="text-align:right">Points</th></tr></thead>
+      <tbody>
+        <tr><td>Device</td><td>Fingerprint hash checked against the user's known devices</td><td class="n">new +25 · known −15</td></tr>
+        <tr><td>IP reputation / ASN</td><td>Hosting/VPN ASN, Tor exit; ASN never seen for this user</td><td class="n">+30 · +45 · +10</td></tr>
+        <tr><td>Geo</td><td>New country for this user; impossible travel = faster than 1,000 km/h over more than 500 km since the last good login</td><td class="n">+15 · +35</td></tr>
+        <tr><td>Failed attempts</td><td>Failed passwords on this account in the last hour (≥3 / ≥10)</td><td class="n">+15 · +30</td></tr>
+        <tr><td>IP spray</td><td>This IP tried 5 or more different accounts in the last hour</td><td class="n">+35</td></tr>
+        <tr><td>Automation</td><td>Headless browser or webdriver flag</td><td class="n">+30</td></tr>
+        <tr><td>Time of day</td><td>More than max(4h, 2.5σ) from the user's usual login hour (circular mean)</td><td class="n">+10</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid2">
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <h3>Good users: 99.6% of password-correct logins</h3>
+      <p class="ink2" style="font-size:.92rem">Each user has a home city and ISP, 1–3 devices and a personal login-hour pattern. Realistic edge cases are built in on purpose, because without them every policy looks perfect:</p>
+      <ul class="notes" style="font-size:.92rem"><li>Travellers (6%): real trips, no logins on the flight day</li><li>VPN users (7%): 40% of logins exit from datacenter IPs abroad</li><li>New phones (12%): primary device replaced mid-month</li><li>Shift workers (8%): normal logins at 1–4 am</li><li>Typos: 6% of logins have one failed attempt first</li></ul>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <h3>Attacks: six labelled scenarios</h3>
+      <ul class="notes" style="font-size:.92rem"><li>Credential stuffing: bots on datacenter/Tor IPs, 25–60 accounts per IP, 3% of passwords valid</li><li>Smart stuffing: rotating residential proxies, real browsers</li><li>Brute force: one account, 15–40 guesses</li><li>Impossible travel: valid password used more than 3,000 km away, minutes after the real user</li><li>New device at 3am: same country, victim's local night</li><li>Local attacker: same city, normal hours, residential IP</li></ul>
+    </div>
+  </div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <h3>How the metrics are defined</h3>
+    <ul class="notes" style="font-size:.92rem">
+      <li>Only <b>password-correct</b> attempts count. A wrong password fails whatever the engine decides, so the decision only matters when the password is right.</li>
+      <li><b>Catch rate</b>: blocked, or stepped up and failing the challenge. OTP lets about 10% of attackers through (phishing kits, SIM swap). Passkeys let none through.</li>
+      <li><b>False-positive rate</b>: good logins stepped up or blocked. Blocks are also reported on their own because they cost far more.</li>
+      <li><b>Friction</b>: seconds added per good login. OTP 30s, passkey 6s, block 300s (account recovery).</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="h-research">
+  <span class="eyebrow">Research grounding</span>
+  <h2 id="h-research">What the design is based on</h2>
+  <ul class="notes">
+    <li><b>Wiefling et al., risk-based authentication studies.</b> They tested how large online services decide when to challenge a login. A few features carry most of the signal: IP/ASN, device and location. Their team also published a public dataset of about 33M login attempts, based on a real service, which is the best check for this simulator. <a href="https://www.kaggle.com/datasets/dasgroup/rba-dataset">RBA dataset on Kaggle</a></li>
+    <li><b>OWASP Credential Stuffing Prevention Cheat Sheet.</b> It recommends layered defences: MFA, device fingerprinting, IP reputation and rate limits per IP and per account. These are the signals used here. <a href="https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html">cheatsheetseries.owasp.org</a></li>
+    <li><b>NIST SP 800-63B.</b> It requires rate limiting of failed attempts and treats phishing-resistant authenticators such as passkeys as stronger than OTP codes. That's why the simulator models different attacker pass rates for OTP and passkeys. <a href="https://pages.nist.gov/800-63-4/sp800-63b.html">pages.nist.gov</a></li>
+    <li><b>Industry products</b> such as Okta, Auth0 and Microsoft Entra use the same allow / challenge / deny bands with configurable sensitivity. The threshold slider above is that configuration setting.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-road">
+  <span class="eyebrow">Build plan</span>
+  <h2 id="h-road">Roadmap</h2>
+  <ol class="steps">
+    <li class="done"><div><b>Risk engine</b><span class="status">Done</span><p class="ink2">Data model, signal extractors, weighted rules, policy, unit tests.</p></div></li>
+    <li class="done"><div><b>Synthetic generator and metrics</b><span class="status">Done</span><p class="ink2">Seeded generator, catch rate / false positives / friction / cost, threshold sweeps. The numbers on this page come from it.</p></div></li>
+    <li><div><b>Login API</b><p class="ink2">FastAPI signup/login endpoints wired to the engine; TOTP step-up (pyotp); device trusted after a passed challenge.</p></div></li>
+    <li><div><b>Web app</b><p class="ink2">Signup, login and step-up screens (Next.js, or generated with Lovable), plus an "attacker console" that replays scenarios against the live app.</p></div></li>
+    <li><div><b>Live dashboard</b><p class="ink2">This explorer, fed by real app traffic, with the reasons behind each decision shown per login.</p></div></li>
+    <li><div><b>Model and passkeys</b><p class="ink2">Logistic regression vs. rules, tested on an attack mix it wasn't trained on; WebAuthn passkeys via py_webauthn.</p></div></li>
+  </ol>
+</section>
+
+<section aria-labelledby="h-limits">
+  <span class="eyebrow">Limits of the current numbers</span>
+  <h2 id="h-limits">Read these before trusting the results</h2>
+  <ul class="notes">
+    <li>Every simulated attack comes from a new device, so a strict passkey policy reaches 100%. Real attackers also use stolen session cookies and malware on the victim's own device. Those scenarios come next.</li>
+    <li>The sweep re-applies thresholds to fixed scores. User history is learned once, under the default policy.</li>
+    <li>The generator encodes my assumptions about attackers. A model trained on it would mostly learn the generator. The public RBA dataset is the check for that.</li>
+  </ul>
+</section>
+
+<footer>Code: <code>risk-login-sim/</code>, pure Python with no dependencies. Run <code>python scripts/run_simulation.py</code> to reproduce, and <code>python -m unittest discover -s tests</code> for the tests (9 passing).</footer>
+</div>
+<script>const D=
+{"t":[0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,96,98,100],"otp":{"catch_rate":[0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.95829,0.91307,0.91307,0.91307,0.91307,0.91307,0.74121,0.74121,0.74121,0.74121,0.74121,0.64171,0.64171,0.64171,0.6191,0.6191,0.6191,0.6191,0.6191,0.58291,0.58291,0.58291,0.58291,0.58291,0.57789,0.57789,0.57789,0.57789,0.57789,0.57286,0.57286,0.43216,0.43216,0.43216,0.42714,0.42714,0.40704,0.40704,0.40704],"false_positive_rate":[1.0,0.0564,0.0564,0.05519,0.05519,0.05519,0.05422,0.05422,0.04325,0.04325,0.04325,0.03647,0.03647,0.01754,0.01754,0.01754,0.01505,0.01505,0.01408,0.01408,0.01408,0.01202,0.01202,0.01202,0.01202,0.01202,0.00539,0.00539,0.00525,0.00525,0.00525,0.00355,0.00355,0.00212,0.00212,0.00212,0.00178,0.00178,0.00088,0.00088,0.00088,0.00069,0.00069,0.00023,0.00023,0.00023,0.00011,0.00011,0.00011,0.00011,0.00011],"good_block_rate":[0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00178,0.00178,0.00088,0.00088,0.00088,0.00069,0.00069,0.00023,0.00023,0.00023,0.00011,0.00011,0.00011,0.00011,0.00011],"friction_sec_per_good_login":[30.57256,2.26444,2.26444,2.22834,2.22834,2.22834,2.19911,2.19911,1.87013,1.87013,1.87013,1.66667,1.66667,1.09869,1.09869,1.09869,1.02419,1.02419,0.99496,0.99496,0.99496,0.93306,0.93306,0.93306,0.93306,0.93306,0.73418,0.73418,0.73017,0.73017,0.73017,0.67916,0.67916,0.63618,0.63618,0.63618,0.53301,0.53301,0.26364,0.26364,0.26364,0.20633,0.20633,0.06878,0.06878,0.06878,0.03439,0.03439,0.03439,0.03439,0.03439],"total_cost":[44527.4,5013.8,5013.8,4963.4,4963.4,4963.4,4922.6,4922.6,4463.4,4463.4,4463.4,4179.4,4179.4,5636.6,5636.6,5636.6,5532.6,5532.6,14041.8,14041.8,14041.8,13955.4,13955.4,18905.4,18905.4,18905.4,19752.8,19752.8,19747.2,19747.2,19747.2,21476.0,21476.0,21416.0,21416.0,21416.0,21558.0,21558.0,21276.0,21276.0,21276.0,21466.0,21466.0,28322.0,28322.0,28322.0,28536.0,28536.0,29536.0,29536.0,29536.0],"missed_takeovers":[8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,8.3,17.3,17.3,17.3,17.3,17.3,51.5,51.5,51.5,51.5,51.5,71.3,71.3,71.3,75.8,75.8,75.8,75.8,75.8,83.0,83.0,83.0,83.0,83.0,84.0,84.0,84.0,84.0,84.0,85.0,85.0,113.0,113.0,113.0,114.0,114.0,118.0,118.0,118.0],"scn":{"brute_force":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"credential_stuffing":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.9848,0.9848,0.9848,0.9848,0.9848,0.9697,0.9697,0.9697,0.9697,0.9697],"impossible_travel":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.975,0.975,0.975,0.975,0.975,0.975,0.975,0.35,0.35,0.35,0.35,0.35,0.3,0.3,0.3],"local_attacker":[0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.66,0.66,0.66,0.66,0.66,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"new_device_3am":[0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.855,0.855,0.855,0.855,0.855,0.495,0.495,0.495,0.495,0.495,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"smart_stuffing":[0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.9278,0.6778,0.6778,0.6778,0.6778,0.6778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.1111,0.1111,0.1111,0.1111,0.1111,0.0,0.0,0.0]}},"good":{"new_phone":[1.0,0.08995,0.08995,0.08995,0.08995,0.08995,0.08995,0.08995,0.08995,0.08995,0.08995,0.08012,0.08012,0.00302,0.00302,0.00302,0.00302,0.00302,0.00076,0.00076,0.00076,0.00076,0.00076,0.00076,0.00076,0.00076,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"normal":[1.0,0.00699,0.00699,0.00687,0.00687,0.00687,0.00679,0.00679,0.00679,0.00679,0.00679,0.00079,0.00079,0.00015,0.00015,0.00015,7e-05,7e-05,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"secondary_device":[1.0,0.16245,0.16245,0.16219,0.16219,0.16219,0.16219,0.16219,0.16219,0.16219,0.16219,0.15671,0.15671,0.00495,0.00495,0.00495,0.00469,0.00469,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.00026,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"shift_worker":[1.0,0.01513,0.01513,0.01513,0.01513,0.01513,0.01484,0.01484,0.01484,0.01484,0.01484,0.01077,0.01077,0.00029,0.00029,0.00029,0.00029,0.00029,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"travel":[1.0,0.32735,0.32735,0.21357,0.21357,0.21357,0.11976,0.11976,0.11976,0.11976,0.11976,0.01597,0.01597,0.01198,0.01198,0.01198,0.01198,0.01198,0.00599,0.00599,0.00599,0.00599,0.00599,0.00599,0.00599,0.00599,0.002,0.002,0.002,0.002,0.002,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"vpn":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.63967,0.63967,0.63967,0.63967,0.63967,0.55116,0.55116,0.55116,0.47207,0.47207,0.45888,0.45888,0.45888,0.39109,0.39109,0.39109,0.39109,0.39109,0.17577,0.17577,0.17137,0.17137,0.17137,0.11676,0.11676,0.06968,0.06968,0.06968,0.05838,0.05838,0.02888,0.02888,0.02888,0.0226,0.0226,0.00753,0.00753,0.00753,0.00377,0.00377,0.00377,0.00377,0.00377]},"n_attack":{"brute_force":5,"credential_stuffing":66,"impossible_travel":40,"local_attacker":30,"new_device_3am":40,"smart_stuffing":18},"n_good":{"new_phone":2646,"normal":40333,"secondary_device":3835,"shift_worker":3436,"travel":501,"vpn":1593},"passkey":{"catch_rate":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.94975,0.94975,0.94975,0.94975,0.94975,0.75879,0.75879,0.75879,0.75879,0.75879,0.64824,0.64824,0.64824,0.62312,0.62312,0.62312,0.62312,0.62312,0.58291,0.58291,0.58291,0.58291,0.58291,0.57789,0.57789,0.57789,0.57789,0.57789,0.57286,0.57286,0.43216,0.43216,0.43216,0.42714,0.42714,0.40704,0.40704,0.40704],"false_positive_rate":[1.0,0.0564,0.0564,0.05519,0.05519,0.05519,0.05422,0.05422,0.04325,0.04325,0.04325,0.03647,0.03647,0.01754,0.01754,0.01754,0.01505,0.01505,0.01408,0.01408,0.01408,0.01202,0.01202,0.01202,0.01202,0.01202,0.00539,0.00539,0.00525,0.00525,0.00525,0.00355,0.00355,0.00212,0.00212,0.00212,0.00178,0.00178,0.00088,0.00088,0.00088,0.00069,0.00069,0.00023,0.00023,0.00023,0.00011,0.00011,0.00011,0.00011,0.00011],"good_block_rate":[0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00212,0.00178,0.00178,0.00088,0.00088,0.00088,0.00069,0.00069,0.00023,0.00023,0.00023,0.00011,0.00011,0.00011,0.00011,0.00011],"friction_sec_per_good_login":[6.62345,0.96183,0.96183,0.95461,0.95461,0.95461,0.94876,0.94876,0.88297,0.88297,0.88297,0.84227,0.84227,0.72868,0.72868,0.72868,0.71378,0.71378,0.70793,0.70793,0.70793,0.69555,0.69555,0.69555,0.69555,0.69555,0.65578,0.65578,0.65497,0.65497,0.65497,0.64477,0.64477,0.63618,0.63618,0.63618,0.53301,0.53301,0.26364,0.26364,0.26364,0.20633,0.20633,0.06878,0.06878,0.06878,0.03439,0.03439,0.03439,0.03439,0.03439],"total_cost":[9545.61,1148.97,1148.97,1138.26,1138.26,1138.26,1129.59,1129.59,1032.01,1032.01,1032.01,971.66,971.66,3303.19,3303.19,3303.19,3281.09,3281.09,12772.42,12772.42,12772.42,12754.06,12754.06,18254.06,18254.06,18254.06,19445.07,19445.07,19443.88,19443.88,19443.88,21428.75,21428.75,21416.0,21416.0,21416.0,21558.0,21558.0,21276.0,21276.0,21276.0,21466.0,21466.0,28322.0,28322.0,28322.0,28536.0,28536.0,29536.0,29536.0,29536.0],"missed_takeovers":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,10.0,10.0,10.0,10.0,10.0,48.0,48.0,48.0,48.0,48.0,70.0,70.0,70.0,75.0,75.0,75.0,75.0,75.0,83.0,83.0,83.0,83.0,83.0,84.0,84.0,84.0,84.0,84.0,85.0,85.0,113.0,113.0,113.0,114.0,114.0,118.0,118.0,118.0],"scn":{"brute_force":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"credential_stuffing":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.9848,0.9848,0.9848,0.9848,0.9848,0.9697,0.9697,0.9697,0.9697,0.9697],"impossible_travel":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.975,0.975,0.975,0.975,0.975,0.975,0.975,0.35,0.35,0.35,0.35,0.35,0.3,0.3,0.3],"local_attacker":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.7333,0.7333,0.7333,0.7333,0.7333,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"new_device_3am":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.95,0.95,0.95,0.95,0.95,0.55,0.55,0.55,0.55,0.55,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"smart_stuffing":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.7222,0.7222,0.7222,0.7222,0.7222,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.2778,0.1111,0.1111,0.1111,0.1111,0.1111,0.0,0.0,0.0]}}};</script>
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const ATK={credential_stuffing:"Credential stuffing",smart_stuffing:"Smart stuffing",brute_force:"Brute force",impossible_travel:"Impossible travel",new_device_3am:"New device at 3am",local_attacker:"Local attacker"};
+const GOOD={normal:"Normal login",shift_worker:"Shift worker",secondary_device:"Secondary device",new_phone:"New phone",travel:"Travelling",vpn:"On a VPN"};
+let thr=30, method="otp";
+const idx=()=>D.t.indexOf(thr);
+const pct=(x,d=1)=>(x*100).toFixed(d)+"%";
+const money=x=>"$"+Math.round(x).toLocaleString("en-US");
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function chart(root,{xs,series,xDom,yDom,xFmt,yFmt,xTicks,yTicks,xLab,yLab,tip}){
+  root.innerHTML="";
+  const W=480,H=300,m={l:52,r:16,t:12,b:40};
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":yLab+" vs "+xLab},root);
+  const X=v=>m.l+(v-xDom[0])/(xDom[1]-xDom[0])*(W-m.l-m.r);
+  const Y=v=>H-m.b-(v-yDom[0])/(yDom[1]-yDom[0])*(H-m.t-m.b);
+  const g=el("g",{class:"grid"},svg);
+  yTicks.forEach(v=>{el("line",{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v)},g);const t=el("text",{x:m.l-8,y:Y(v)+4,"text-anchor":"end"},svg);t.textContent=yFmt(v);});
+  xTicks.forEach(v=>{const t=el("text",{x:X(v),y:H-m.b+16,"text-anchor":"middle"},svg);t.textContent=xFmt(v);});
+  el("line",{class:"axis",x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b},svg);
+  const xl=el("text",{class:"lbl",x:(m.l+W-m.r)/2,y:H-6,"text-anchor":"middle"},svg);xl.textContent=xLab;
+  const yl=el("text",{class:"lbl",x:12,y:(m.t+H-m.b)/2,"text-anchor":"middle",transform:`rotate(-90 12 ${(m.t+H-m.b)/2})`},svg);yl.textContent=yLab;
+  const pts=[];
+  series.forEach(s=>{
+    const P=s.ys.map((y,i)=>[X(xs(i,s)),Y(y),i]).filter(p=>p[0]>=m.l-0.5&&p[0]<=W-m.r+0.5);
+    el("path",{d:"M"+P.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L"),fill:"none",stroke:css(s.color),"stroke-width":2,"stroke-linejoin":"round"},svg);
+    P.forEach(p=>pts.push({x:p[0],y:p[1],i:p[2],s}));
+  });
+  series.forEach(s=>{const i=idx();const x=X(xs(i,s)),y=Y(s.ys[i]);
+    if(x>=m.l&&x<=W-m.r){el("circle",{cx:x,cy:y,r:s.active?6:4.5,fill:css(s.color),stroke:css("--surface"),"stroke-width":2},svg);}});
+  const hov=el("circle",{r:5,fill:"none","stroke-width":2,visibility:"hidden"},svg);
+  const tipEl=document.createElement("div");tipEl.className="tip";tipEl.hidden=true;root.appendChild(tipEl);
+  const hit=el("rect",{x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b,fill:"transparent"},svg);
+  function move(ev){const r=svg.getBoundingClientRect(),sx=(ev.clientX-r.left)*W/r.width,sy=(ev.clientY-r.top)*H/r.height;
+    let best=null,bd=1e9;pts.forEach(p=>{const d=(p.x-sx)**2+(p.y-sy)**2;if(d<bd){bd=d;best=p;}});
+    if(!best)return;hov.setAttribute("cx",best.x);hov.setAttribute("cy",best.y);hov.setAttribute("stroke",css(best.s.color));hov.setAttribute("visibility","visible");
+    tipEl.innerHTML=tip(best.i,best.s);tipEl.hidden=false;
+    const rw=root.clientWidth,px=best.x*r.width/W,py=best.y*r.height/H;
+    tipEl.style.left=Math.min(Math.max(px+12,0),rw-tipEl.offsetWidth)+"px";tipEl.style.top=Math.max(py-tipEl.offsetHeight-10,0)+"px";}
+  hit.addEventListener("pointermove",move);hit.addEventListener("pointerleave",()=>{tipEl.hidden=true;hov.setAttribute("visibility","hidden");});
+  hit.addEventListener("click",ev=>{move(ev);});
+}
+
+function tipText(i,s){const d=D[s.key];return `<div><b>${s.name}</b> · step-up ≥ ${D.t[i]}</div>caught <b>${pct(d.catch_rate[i])}</b> · challenged <b>${pct(d.false_positive_rate[i],2)}</b><br>friction <b>${d.friction_sec_per_good_login[i].toFixed(2)} s</b> · cost <b>${money(d.total_cost[i])}</b>`;}
+
+function bars(root,rows,color){
+  root.innerHTML=rows.map(r=>`<div class="bar"><span class="name">${r.name}<small>${r.sub}</small></span><span class="track"><span class="fill" style="width:${Math.max(r.v*r.scale*100,0.5)}%;background:var(${color})"></span></span><span class="num">${r.label}</span></div>`).join("");
+}
+
+function render(){
+  const i=idx(),d=D[method];
+  document.getElementById("thrv").textContent=thr;
+  const a=thr/100,b=0.70;
+  document.getElementById("bands").innerHTML=`<span style="flex:${a};background:var(--good)"></span><span style="flex:${Math.max(b-a,0)};background:var(--warn)"></span><span style="flex:${1-Math.max(a,b)};background:var(--crit)"></span>`;
+  document.getElementById("bands").title=`allow < ${thr} · step-up ${thr}–69 · block ≥ 70`;
+  const tiles=[[pct(d.catch_rate[i]),"takeovers caught"],[pct(d.false_positive_rate[i],2),"good logins challenged"],[pct(d.good_block_rate[i],2),"good logins blocked"],[d.friction_sec_per_good_login[i].toFixed(2)+" s","friction per good login"],[d.missed_takeovers[i].toFixed(1),"expected missed takeovers"],[money(d.total_cost[i]),"total cost"]];
+  document.getElementById("live").innerHTML=tiles.map(t=>`<div class="tile"><span class="v">${t[0]}</span><span class="k">${t[1]}</span></div>`).join("");
+  ["otp","passkey"].forEach(k=>document.getElementById("m-"+k).setAttribute("aria-pressed",k===method));
+  const ser=[{key:"otp",name:"OTP",color:"--s1"},{key:"passkey",name:"Passkey",color:"--s2"}].map(s=>({...s,active:s.key===method}));
+  chart(document.getElementById("c-roc"),{
+    xs:(j,s)=>D[s.key].false_positive_rate[j]*100, series:ser.map(s=>({...s,ys:D[s.key].catch_rate.map(v=>v*100)})),
+    xDom:[0,6],yDom:[0,100],xTicks:[0,1,2,3,4,5,6],yTicks:[0,25,50,75,100],xFmt:v=>v+"%",yFmt:v=>v+"%",
+    xLab:"Good logins challenged",yLab:"Takeovers caught",tip:tipText});
+  chart(document.getElementById("c-cost"),{
+    xs:j=>D.t[j], series:ser.map(s=>({...s,ys:D[s.key].total_cost.map(v=>Math.min(v,32000)/1000)})),
+    xDom:[2,100],yDom:[0,32],xTicks:[2,20,40,60,80,100],yTicks:[0,8,16,24,32],xFmt:v=>v,yFmt:v=>"$"+v+"k",
+    xLab:"Step-up threshold (score)",yLab:"Total cost",tip:tipText});
+  bars(document.getElementById("b-attack"),Object.keys(ATK).map(k=>({name:ATK[k],sub:D.n_attack[k]+" attempts",v:d.scn[k][i],scale:1,label:pct(d.scn[k][i],0)})),"--s1");
+  const gk=Object.keys(GOOD);
+  bars(document.getElementById("b-good"),gk.map(k=>({name:GOOD[k],sub:D.n_good[k].toLocaleString("en-US")+" logins",v:D.good[k][i],scale:1,label:pct(D.good[k][i],1)})),"--s2");
+}
+const r=document.getElementById("thr");
+r.addEventListener("input",()=>{thr=+r.value;render();});
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{thr=+c.dataset.t;r.value=thr;render();}));
+["otp","passkey"].forEach(k=>document.getElementById("m-"+k).addEventListener("click",()=>{method=k;render();}));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+render();
+})();
+</script>
