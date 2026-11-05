@@ -73,15 +73,23 @@ class RiskState:
     # -- updates ---------------------------------------------------------
     def record(self, ev: LoginEvent, success: bool) -> None:
         """Update state after an attempt. `success` = the user ended up logged in."""
+        self.record_attempt(ev)
+        if success:
+            self.record_success(ev)
+
+    def record_attempt(self, ev: LoginEvent) -> None:
+        """Count the attempt in the sliding windows (call once per attempt)."""
         self.ip_accounts[ev.ip].append((ev.ts, ev.username))
         if not ev.password_ok:
             self.account_failures[ev.username].append(ev.ts)
             self.ip_failures[ev.ip].append(ev.ts)
-        if success:
-            h = self.users[ev.username]
-            h.devices.add(ev.device_id)
-            h.asns.add(ev.asn)
-            h.countries.add(ev.country)
-            h.last_success = (ev.ts, ev.lat, ev.lon)
-            h.n_success += 1
-            h.add_hour(ev.ts)
+
+    def record_success(self, ev: LoginEvent) -> None:
+        """Learn from a completed login. In the API this can happen after a step-up."""
+        h = self.users[ev.username]
+        h.devices.add(ev.device_id)
+        h.asns.add(ev.asn)
+        h.countries.add(ev.country)
+        h.last_success = (ev.ts, ev.lat, ev.lon)
+        h.n_success += 1
+        h.add_hour(ev.ts)
