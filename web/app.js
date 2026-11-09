@@ -701,7 +701,7 @@ ROUTES.settings = {
           <p class="small sub">${sim ? "In simulation mode your own sign-ins are sent from this place and network. Change them to see how the engine reacts, for example by switching on a VPN." : "Simulation mode is off, so the server uses your real network."}</p>
           <div class="field"><label for="loc">City</label><select class="input" id="loc" ${sim ? "" : "disabled"}>
             ${CITIES.map((c) => `<option ${c.city === S.location ? "selected" : ""}>${esc(c.city)}</option>`).join("")}</select></div>
-          <div class="field"><span class="label">Network</span>${seg("net", S.network, [["home", "Home Wi-Fi"], ["mobile", "Mobile data"], ["vpn", "VPN"]])}</div>
+          <div class="field"><span class="label">Network</span>${seg("net", S.network, [["home", "Wi‑Fi"], ["mobile", "Mobile"], ["vpn", "VPN"]])}</div>
         </div></section>
       <section class="stack"><h2 class="section-label">This device</h2>
         <div class="card stack">
