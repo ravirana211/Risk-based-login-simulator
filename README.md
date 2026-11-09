@@ -75,6 +75,8 @@ On a phone, open it and use **Add to Home Screen** to run it full-screen like a 
 | Attack lab | Replays six attacks (impossible travel, local attacker, new device at 3am, credential stuffing, smart stuffing, brute force) against an account and shows the verdict, score and every attempt |
 | Settings | Simulated city and network (Home Wi-Fi / Mobile / VPN), reset device ID, light/dark/system theme, API address |
 
+**Hosted demo (no backend):** `python scripts/build_web_demo.py risklogin-demo.html` builds a single-file version of the app. It swaps the HTTP API for `web/mock-api.js`, a JavaScript port of the risk engine and auth service that keeps its data in the browser, and includes a seeded demo account (`alex` / `correct horse battery`) with a week of history. Keep `mock-api.js` weights in sync with `risksim/engine.py`.
+
 Built for phones first: safe-area insets, bottom tab bar, 48px+ touch targets, 17px body text, 16px+ inputs (no iOS zoom), light and dark themes, reduced-motion support, and an offline-capable app shell (service worker). The browser derives the device ID from a hash of browser traits plus random salt; Settings can reset it to look like a new device. The QR code uses the MIT-licensed `qrcode-generator` (vendored in `web/vendor/`).
 
 ## Signals and default weights
